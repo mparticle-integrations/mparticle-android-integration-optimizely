@@ -7,7 +7,6 @@ import android.support.annotation.Nullable;
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
 import com.mparticle.UserAttributeListener;
-import com.mparticle.commerce.Cart;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Impression;
 import com.mparticle.commerce.Product;
@@ -543,12 +542,6 @@ public class OptimizelyKitTests {
         @Override
         public long getId() {
             return 1L;
-        }
-
-        @NonNull
-        @Override
-        public Cart getCart() {
-            return null;
         }
 
         @NonNull
