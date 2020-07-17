@@ -502,6 +502,23 @@ public class OptimizelyKitTests {
         assertEquals(4, count.value.intValue());
     }
 
+    @Test
+    public void onCreateAfterDestroy() {
+        OptimizelyKit optimizelyKit = new OptimizelyKit();
+        OptimizelyClient client = Mockito.mock(OptimizelyClient.class);
+        Mockito.when(client.isValid()).thenReturn(true);
+        OptimizelyKit.setOptimizelyClient(client);
+
+        Map<String, String> minimalSettings = new HashMap<>();
+        Exception e = null;
+        minimalSettings.put("projectId", "2234");
+
+        optimizelyKit.onKitCreate(minimalSettings, new MockContext());
+
+        optimizelyKit.onKitDestroy();
+        optimizelyKit.onKitCreate(minimalSettings, new MockContext());
+    }
+
     private int invocationCount(Object object, String methodName) {
         Collection<Invocation> invocationList = Mockito.mockingDetails(object).getInvocations();
 

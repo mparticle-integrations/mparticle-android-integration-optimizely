@@ -6,7 +6,6 @@ import android.support.annotation.Nullable;
 
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
-import com.mparticle.UserAttributeListener;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.identity.MParticleUser;
 import com.mparticle.internal.Logger;
@@ -14,11 +13,8 @@ import com.mparticle.internal.MPUtility;
 import com.optimizely.ab.android.sdk.OptimizelyClient;
 import com.optimizely.ab.android.sdk.OptimizelyManager;
 import com.optimizely.ab.android.sdk.OptimizelyStartListener;
-import com.optimizely.ab.config.Variation;
 
-import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +26,7 @@ import java.util.Queue;
 public class OptimizelyKit extends KitIntegration implements KitIntegration.EventListener, KitIntegration.CommerceListener, OptimizelyStartListener {
     private static boolean providedClient = false;
     private static OptimizelyClient mOptimizelyClient;
-    private static List<OptimizelyClientListener> mStartListeners = new ArrayList<>();
+    private static final List<OptimizelyClientListener> mStartListeners = new ArrayList<>();
 
     protected final Queue<OptimizelyEvent> mEventQueue = new LinkedList<>();
     final static String USER_ID_FIELD_KEY = "userIdField";
@@ -238,7 +234,7 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
     protected void onKitDestroy() {
         super.onKitDestroy();
         mOptimizelyClient = null;
-        mStartListeners = null;
+        mStartListeners.clear();
     }
 
     @Override
@@ -246,15 +242,13 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
         //check providedClient, so we don't override a client that the was set explicitly
         if (!providedClient && optimizelyClient != null && optimizelyClient.isValid()) {
             mOptimizelyClient = optimizelyClient;
-            if (mStartListeners != null) {
-                for (OptimizelyClientListener listener : mStartListeners) {
-                    try {
-                        if (listener != null) {
-                            listener.onOptimizelyClientAvailable(mOptimizelyClient);
-                        }
-                    } catch (Exception e) {
-
+            for (OptimizelyClientListener listener : mStartListeners) {
+                try {
+                    if (listener != null) {
+                        listener.onOptimizelyClientAvailable(mOptimizelyClient);
                     }
+                } catch (Exception e) {
+
                 }
             }
             mStartListeners.clear();
