@@ -22,7 +22,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.optimizely.ab:android-sdk:3.6.0'
+    implementation 'com.optimizely.ab:android-sdk:3.7.0'
 
     testImplementation 'junit:junit:4.13'
     testImplementation files('libs/java-json.jar')
