@@ -2,6 +2,7 @@ package com.mparticle.kits;
 
 
 import android.content.Context;
+
 import androidx.annotation.Nullable;
 
 import com.mparticle.MPEvent;
@@ -178,20 +179,26 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
         MParticleUser user = getCurrentUser();
         String customEventName = null;
         String customUserId = null;
+        String valueString = null;
         if (commerceEvent.getCustomFlags() != null) {
             List<String> eventNameFlags = commerceEvent.getCustomFlags().get(OPTIMIZELY_EVENT_NAME);
             List<String>userIdFlags = commerceEvent.getCustomFlags().get(OPTIMIZELY_USER_ID);
+            List<String> valueList = commerceEvent.getCustomFlags().get(OPTIMIZELY_VALUE_KEY);
             if (eventNameFlags != null) {
                 customEventName = eventNameFlags.get(0);
             }
             if (userIdFlags != null) {
                 customUserId = userIdFlags.get(0);
             }
+            if (valueList != null && valueList.size() > 0) {
+                valueString = valueList.get(0);
+            }
         }
 
         List<MPEvent> events = CommerceEventUtils.expand(commerceEvent);
         final String optimizelyCustomEventName = customEventName;
         final String optimizelyCustomUserId = customUserId;
+        final String optimizelyValueString = valueString;
         for (final MPEvent event: events) {
             getOptimizelyEvent(event, user, new OptimizelyEventCallback() {
                 @Override
@@ -222,6 +229,15 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
                     if (optimizelyCustomUserId != null) {
                         optimizelyEvent.userId = optimizelyCustomUserId;
                         Logger.debug(String.format("Applying custom userId: \"%s\" to Optimizely Event based on customFlag", optimizelyCustomUserId));
+                    }
+                    if (!MPUtility.isEmpty(optimizelyValueString)) {
+                        try {
+                            Double value = Double.parseDouble(optimizelyValueString);
+                            optimizelyEvent.addEventAttribute("value", value);
+                            Logger.debug(String.format("Applying custom value: \"%s\" to Optimizely Event based on customFlag", value));
+                        } catch (NumberFormatException ex) {
+                            Logger.error(String.format("Unable to log Optimizely Value \"%s\", failed to parse as a Double", optimizelyValueString));
+                        }
                     }
                     logOptimizelyEvent(optimizelyEvent);
                 }
