@@ -206,7 +206,7 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
                     //If the event is a Purchase or Refund expanded event
                     if (commerceEvent.getProductAction() != null && event.getEventName().equals(String.format(CommerceEventUtils.PLUSONE_NAME, commerceEvent.getProductAction()))) {
                         //parse and apply the "revenue"
-                        String totalAmountString = event.getInfo().get(CommerceEventUtils.Constants.ATT_TOTAL);
+                        String totalAmountString = event.getCustomAttributeStrings().get(CommerceEventUtils.Constants.ATT_TOTAL);
                         if (!MPUtility.isEmpty(totalAmountString)) {
                             try {
                                 Double totalAmount = Double.valueOf(totalAmountString);
@@ -332,7 +332,7 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
                     event.userId = userId;
                     event.userAttributes = attributes;
                     if (mpEvent.getCustomAttributes() != null) {
-                        event.eventAttributes = new HashMap<String, Object>(mpEvent.getInfo());
+                        event.eventAttributes = new HashMap<String, Object>(mpEvent.getCustomAttributes());
                     }
                     onEventCreated.onOptimizelyEventCreated(event);
                 }
