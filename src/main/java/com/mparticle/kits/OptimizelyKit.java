@@ -3,10 +3,12 @@ package com.mparticle.kits;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
+import com.mparticle.TypedUserAttributeListener;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.identity.MParticleUser;
 import com.mparticle.internal.Logger;
@@ -315,11 +317,11 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
 
     private Boolean getOptimizelyEvent(final MPEvent mpEvent, final MParticleUser user, final OptimizelyEventCallback onEventCreated) {
         if (!MPUtility.isEmpty(getUserId(user))) {
-            com.mparticle.UserAttributeListener listener = new com.mparticle.UserAttributeListener() {
+            TypedUserAttributeListener listener = new TypedUserAttributeListener() {
                 @Override
-                public void onUserAttributesReceived(@Nullable Map<String, String> userAttributes, @Nullable Map<String, List<String>> userAttributeLists, @Nullable Long aLong) {
-                    Map<String, String> attributes = new HashMap<>();
-                    for (Map.Entry<String, String> entry : userAttributes.entrySet()) {
+                public void onUserAttributesReceived(@NonNull Map<String, ?> userAttributes, @NonNull Map<String, ? extends List<String>> map1, long mpid) {
+                    Map<String, Object> attributes = new HashMap<>();
+                    for (Map.Entry<String, ?> entry : userAttributes.entrySet()) {
                         attributes.put(entry.getKey(), entry.getValue());
                     }
 
@@ -340,7 +342,7 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
             if (user != null) {
                 user.getUserAttributes(listener);
             } else {
-                listener.onUserAttributesReceived(new HashMap<String, String>(), new HashMap<String, List<String>>(), null);
+                listener.onUserAttributesReceived(new HashMap<String, String>(), new HashMap<>(), 0);
             }
             return true;
         } else {
@@ -374,7 +376,7 @@ public class OptimizelyKit extends KitIntegration implements KitIntegration.Even
     class OptimizelyEvent {
         String eventName;
         String userId;
-        Map<String, String> userAttributes;
+        Map<String, Object> userAttributes;
         Map<String, Object> eventAttributes;
 
         void addEventAttribute(String key, Object value) {

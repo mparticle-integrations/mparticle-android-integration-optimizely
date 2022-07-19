@@ -1,16 +1,25 @@
 package com.mparticle.kits;
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
+import com.mparticle.TypedUserAttributeListener;
 import com.mparticle.UserAttributeListener;
+import com.mparticle.UserAttributeListenerType;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Impression;
 import com.mparticle.commerce.Product;
-import com.mparticle.commerce.Promotion;
 import com.mparticle.commerce.TransactionAttributes;
 import com.mparticle.consent.ConsentState;
 import com.mparticle.identity.IdentityApi;
@@ -30,18 +39,9 @@ import org.mockito.invocation.Invocation;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class OptimizelyKitTests {
     RandomUtils randomUtils = new RandomUtils();
@@ -272,8 +272,8 @@ public class OptimizelyKitTests {
         MParticleUser user = new EmptyMParticleUser() {
             @Nullable
             @Override
-            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListener userAttributeListener) {
-                userAttributeListener.onUserAttributesReceived(userAttributes, new HashMap<String, List<String>>(), 1L);
+            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListenerType userAttributeListener) {
+                ((TypedUserAttributeListener)userAttributeListener).onUserAttributesReceived(new HashMap<>(userAttributes), new HashMap<>(), 1L);
                 return null;
             }
         };
@@ -313,8 +313,8 @@ public class OptimizelyKitTests {
         MParticleUser user = new EmptyMParticleUser() {
             @Nullable
             @Override
-            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListener userAttributeListener) {
-                userAttributeListener.onUserAttributesReceived(userAttributes, new HashMap<String, List<String>>(), 1L);
+            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListenerType userAttributeListener) {
+                ((TypedUserAttributeListener)userAttributeListener).onUserAttributesReceived(new HashMap<>(userAttributes), new HashMap<>(), 1L);
                 return null;
             }
         };
@@ -420,8 +420,8 @@ public class OptimizelyKitTests {
         MParticleUser user = new EmptyMParticleUser() {
             @Nullable
             @Override
-            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListener userAttributeListener) {
-                userAttributeListener.onUserAttributesReceived(userAttributes, new HashMap<String, List<String>>(), 1L);
+            public Map<String, Object> getUserAttributes(@Nullable UserAttributeListenerType userAttributeListener) {
+                ((TypedUserAttributeListener)userAttributeListener).onUserAttributesReceived(new HashMap<>(userAttributes), new HashMap<>(), 1L);
                 return null;
             }
         };
@@ -569,8 +569,13 @@ public class OptimizelyKitTests {
 
         @Nullable
         @Override
-        public Map<String, Object> getUserAttributes(@Nullable UserAttributeListener userAttributeListener) {
-            userAttributeListener.onUserAttributesReceived(new HashMap<String, String>(), new HashMap<String, List<String>>(), getId());
+        public Map<String, Object> getUserAttributes(@Nullable UserAttributeListenerType userAttributeListener) {
+            if (userAttributeListener instanceof TypedUserAttributeListener) {
+                ((TypedUserAttributeListener)userAttributeListener).onUserAttributesReceived(new HashMap<>(), new HashMap<>(), getId());
+            }
+            if (userAttributeListener instanceof UserAttributeListener) {
+                ((UserAttributeListener)userAttributeListener).onUserAttributesReceived(new HashMap<>(), new HashMap<>(), getId());
+            }
             return null;
         }
 
@@ -596,7 +601,7 @@ public class OptimizelyKitTests {
         }
 
         @Override
-        public boolean incrementUserAttribute(@NonNull String s, int i) {
+        public boolean incrementUserAttribute(@NonNull String s, Number i) {
             return false;
         }
 
