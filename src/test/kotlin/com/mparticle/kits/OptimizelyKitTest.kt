@@ -2,6 +2,8 @@ package com.mparticle.kits
 
 import com.mparticle.*
 import com.mparticle.MParticle.IdentityType
+import com.mparticle.audience.AudienceResponse
+import com.mparticle.audience.AudienceTask
 import com.mparticle.commerce.CommerceEvent
 import com.mparticle.commerce.Impression
 import com.mparticle.commerce.Product
@@ -556,6 +558,9 @@ class OptimizelyKitTests {
         override fun getFirstSeenTime(): Long = 0
 
         override fun getLastSeenTime(): Long = 0
+        override fun getUserAudiences(): AudienceTask<AudienceResponse> {
+            throw NotImplementedError("getUserAudiences() is not implemented")
+        }
 
     }
 }
