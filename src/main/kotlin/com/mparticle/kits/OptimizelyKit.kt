@@ -13,26 +13,34 @@ import com.optimizely.ab.android.sdk.OptimizelyClient
 import com.optimizely.ab.android.sdk.OptimizelyManager
 import com.optimizely.ab.android.sdk.OptimizelyStartListener
 import java.math.BigDecimal
-import java.util.*
+import java.util.ArrayList
+import java.util.HashMap
+import java.util.LinkedList
+import java.util.Queue
 
-open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, CommerceListener,
+open class OptimizelyKit :
+    KitIntegration(),
+    KitIntegration.EventListener,
+    CommerceListener,
     OptimizelyStartListener {
     @JvmField
     val mEventQueue: Queue<OptimizelyEvent> = LinkedList()
-    override fun getName(): String = KIT_NAME
 
+    override fun getName(): String = KIT_NAME
 
     @Throws(IllegalArgumentException::class)
     public override fun onKitCreate(
         map: Map<String, String>,
-        context: Context
+        context: Context,
     ): List<ReportingMessage> {
         val sdkKey = map[PROJECT_ID]
         val eventInterval = tryParse(map[EVENT_INTERVAL])
         val datafileDownloadInterval = tryParse(map[DATAFILE_INTERVAL])
         if (!providedClient && (mOptimizelyClient == null || !mOptimizelyClient!!.isValid)) {
-            val builder = OptimizelyManager.builder()
-                .withSDKKey(sdkKey)
+            val builder =
+                OptimizelyManager
+                    .builder()
+                    .withSDKKey(sdkKey)
             if (eventInterval != null) {
                 builder.withEventDispatchInterval(eventInterval)
             }
@@ -47,18 +55,18 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
 
     override fun setOptOut(b: Boolean): List<ReportingMessage> = emptyList()
 
-
     override fun leaveBreadcrumb(s: String): List<ReportingMessage> = emptyList()
 
-
-    override fun logError(s: String, map: Map<String, String>): List<ReportingMessage> = emptyList()
+    override fun logError(
+        s: String,
+        map: Map<String, String>,
+    ): List<ReportingMessage> = emptyList()
 
     override fun logException(
         e: Exception,
         map: Map<String, String>,
-        s: String
+        s: String,
     ): List<ReportingMessage> = emptyList()
-
 
     override fun logEvent(mpEvent: MPEvent): List<ReportingMessage>? {
         val user = currentUser
@@ -76,39 +84,44 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         }
         val optimizelyCustomUserId = customUserId
         val optimizelyValueString = valueString
-        val eventCreated = getOptimizelyEvent(mpEvent, user, object : OptimizelyEventCallback {
-            override fun onOptimizelyEventCreated(event: OptimizelyEvent) {
-                if (!MPUtility.isEmpty(optimizelyValueString)) {
-                    try {
-                        val value = optimizelyValueString!!.toDouble()
-                        event.addEventAttribute("value", value)
-                        Logger.debug(
-                            String.format(
-                                "Applying custom value: \"%s\" to Optimizely Event based on customFlag",
-                                value.toString()
+        val eventCreated =
+            getOptimizelyEvent(
+                mpEvent,
+                user,
+                object : OptimizelyEventCallback {
+                    override fun onOptimizelyEventCreated(event: OptimizelyEvent) {
+                        if (!MPUtility.isEmpty(optimizelyValueString)) {
+                            try {
+                                val value = optimizelyValueString!!.toDouble()
+                                event.addEventAttribute("value", value)
+                                Logger.debug(
+                                    String.format(
+                                        "Applying custom value: \"%s\" to Optimizely Event based on customFlag",
+                                        value.toString(),
+                                    ),
+                                )
+                            } catch (ex: NumberFormatException) {
+                                Logger.error(
+                                    String.format(
+                                        "Unable to log Optimizely Value \"%s\", failed to parse as a Double",
+                                        optimizelyValueString,
+                                    ),
+                                )
+                            }
+                        }
+                        if (!MPUtility.isEmpty(optimizelyCustomUserId)) {
+                            event.userId = optimizelyCustomUserId
+                            Logger.debug(
+                                String.format(
+                                    "Applying custom userId: \"%s\" to Optimizely Event based on customFlag",
+                                    optimizelyCustomUserId,
+                                ),
                             )
-                        )
-                    } catch (ex: NumberFormatException) {
-                        Logger.error(
-                            String.format(
-                                "Unable to log Optimizely Value \"%s\", failed to parse as a Double",
-                                optimizelyValueString
-                            )
-                        )
+                        }
+                        logOptimizelyEvent(event)
                     }
-                }
-                if (!MPUtility.isEmpty(optimizelyCustomUserId)) {
-                    event.userId = optimizelyCustomUserId
-                    Logger.debug(
-                        String.format(
-                            "Applying custom userId: \"%s\" to Optimizely Event based on customFlag",
-                            optimizelyCustomUserId
-                        )
-                    )
-                }
-                logOptimizelyEvent(event)
-            }
-        })
+                },
+            )
         return if (!eventCreated) {
             null
         } else {
@@ -116,15 +129,17 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         }
     }
 
-    override fun logScreen(s: String, map: Map<String, String>): List<ReportingMessage> = emptyList()
+    override fun logScreen(
+        s: String,
+        map: Map<String, String>,
+    ): List<ReportingMessage> = emptyList()
 
     override fun logLtvIncrease(
         bigDecimal: BigDecimal,
         bigDecimal1: BigDecimal,
         s: String,
-        map: Map<String, String>
+        map: Map<String, String>,
     ): List<ReportingMessage> = emptyList()
-
 
     override fun logEvent(commerceEvent: CommerceEvent): List<ReportingMessage> {
         val user = currentUser
@@ -150,76 +165,84 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         val optimizelyCustomUserId = customUserId
         val optimizelyValueString = valueString
         for (event in events) {
-            getOptimizelyEvent(event, user, object : OptimizelyEventCallback {
-                override fun onOptimizelyEventCreated(optimizelyEvent: OptimizelyEvent) {
-                    //If the event is a Purchase or Refund expanded event
-                    if (commerceEvent.productAction != null && event.eventName == String.format(
-                            CommerceEventUtils.PLUSONE_NAME,
-                            commerceEvent.productAction
-                        )
-                    ) {
-                        //parse and apply the "revenue"
-                        val totalAmountString =
-                            event.customAttributeStrings?.get(CommerceEventUtils.Constants.ATT_TOTAL)
-                        if (!MPUtility.isEmpty(totalAmountString)) {
-                            try {
-                                val totalAmount = java.lang.Double.valueOf(totalAmountString)
-                                val revenueInCents =
-                                    java.lang.Double.valueOf(totalAmount * 100).toInt()
-                                optimizelyEvent.eventAttributes?.set("revenue", revenueInCents)
+            getOptimizelyEvent(
+                event,
+                user,
+                object : OptimizelyEventCallback {
+                    override fun onOptimizelyEventCreated(optimizelyEvent: OptimizelyEvent) {
+                        // If the event is a Purchase or Refund expanded event
+                        if (commerceEvent.productAction != null &&
+                            event.eventName ==
+                            String.format(
+                                CommerceEventUtils.PLUSONE_NAME,
+                                commerceEvent.productAction,
+                            )
+                        ) {
+                            // parse and apply the "revenue"
+                            val totalAmountString =
+                                event.customAttributeStrings?.get(CommerceEventUtils.Constants.ATT_TOTAL)
+                            if (!MPUtility.isEmpty(totalAmountString)) {
+                                try {
+                                    val totalAmount = java.lang.Double.valueOf(totalAmountString)
+                                    val revenueInCents =
+                                        java.lang.Double
+                                            .valueOf(totalAmount * 100)
+                                            .toInt()
+                                    optimizelyEvent.eventAttributes?.set("revenue", revenueInCents)
+                                    Logger.debug(
+                                        String.format(
+                                            "Applying revenue: \"%s\" to Optimizely Event based on transactionAttributes",
+                                            revenueInCents,
+                                        ),
+                                    )
+                                } catch (ex: NumberFormatException) {
+                                    Logger.error("Unable to parse Revenue value")
+                                }
+                            }
+                            // And apply the custom name, if there is one
+                            if (optimizelyCustomEventName != null) {
+                                optimizelyEvent.eventName = optimizelyCustomEventName
                                 Logger.debug(
                                     String.format(
-                                        "Applying revenue: \"%s\" to Optimizely Event based on transactionAttributes",
-                                        revenueInCents
-                                    )
+                                        "Applying custom eventName: \"%s\" to Optimizely Event based on customFlag",
+                                        optimizelyCustomEventName,
+                                    ),
                                 )
-                            } catch (ex: NumberFormatException) {
-                                Logger.error("Unable to parse Revenue value")
                             }
                         }
-                        //And apply the custom name, if there is one
-                        if (optimizelyCustomEventName != null) {
-                            optimizelyEvent.eventName = optimizelyCustomEventName
+                        // Apply customId, if there is one, to all expanded events
+                        if (optimizelyCustomUserId != null) {
+                            optimizelyEvent.userId = optimizelyCustomUserId
                             Logger.debug(
                                 String.format(
-                                    "Applying custom eventName: \"%s\" to Optimizely Event based on customFlag",
-                                    optimizelyCustomEventName
-                                )
+                                    "Applying custom userId: \"%s\" to Optimizely Event based on customFlag",
+                                    optimizelyCustomUserId,
+                                ),
                             )
                         }
-                    }
-                    //Apply customId, if there is one, to all expanded events
-                    if (optimizelyCustomUserId != null) {
-                        optimizelyEvent.userId = optimizelyCustomUserId
-                        Logger.debug(
-                            String.format(
-                                "Applying custom userId: \"%s\" to Optimizely Event based on customFlag",
-                                optimizelyCustomUserId
-                            )
-                        )
-                    }
-                    if (!MPUtility.isEmpty(optimizelyValueString)) {
-                        try {
-                            val value = optimizelyValueString?.toDouble()
-                            optimizelyEvent.addEventAttribute("value", value)
-                            Logger.debug(
-                                String.format(
-                                    "Applying custom value: \"%s\" to Optimizely Event based on customFlag",
-                                    value
+                        if (!MPUtility.isEmpty(optimizelyValueString)) {
+                            try {
+                                val value = optimizelyValueString?.toDouble()
+                                optimizelyEvent.addEventAttribute("value", value)
+                                Logger.debug(
+                                    String.format(
+                                        "Applying custom value: \"%s\" to Optimizely Event based on customFlag",
+                                        value,
+                                    ),
                                 )
-                            )
-                        } catch (ex: NumberFormatException) {
-                            Logger.error(
-                                String.format(
-                                    "Unable to log Optimizely Value \"%s\", failed to parse as a Double",
-                                    optimizelyValueString
+                            } catch (ex: NumberFormatException) {
+                                Logger.error(
+                                    String.format(
+                                        "Unable to log Optimizely Value \"%s\", failed to parse as a Double",
+                                        optimizelyValueString,
+                                    ),
                                 )
-                            )
+                            }
                         }
+                        logOptimizelyEvent(optimizelyEvent)
                     }
-                    logOptimizelyEvent(optimizelyEvent)
-                }
-            })
+                },
+            )
         }
         return listOf(ReportingMessage.fromEvent(this, commerceEvent))
     }
@@ -231,7 +254,7 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
     }
 
     override fun onStart(optimizelyClient: OptimizelyClient) {
-        //check providedClient, so we don't override a client that the was set explicitly
+        // check providedClient, so we don't override a client that the was set explicitly
         if (!providedClient && optimizelyClient.isValid) {
             mOptimizelyClient = optimizelyClient
             for (listener in mStartListeners) {
@@ -251,14 +274,14 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
                 mOptimizelyClient?.track(
                     trackEvent.eventName!!,
                     trackEvent.userId!!,
-                    trackEvent.userAttributes!!
+                    trackEvent.userAttributes!!,
                 )
             } else {
                 mOptimizelyClient?.track(
                     trackEvent.eventName!!,
                     trackEvent.userId!!,
                     trackEvent.userAttributes!!,
-                    trackEvent.eventAttributes!!
+                    trackEvent.eventAttributes!!,
                 )
             }
         } else {
@@ -272,19 +295,19 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
             val userIdField = settings[USER_ID_FIELD_KEY]
             if (USER_ID_CUSTOMER_ID_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.CustomerId]
-            } else if (USER_ID_EMAIL_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_EMAIL_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.Email]
-            } else if (USER_ID_OTHER_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_OTHER_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.Other]
-            } else if (USER_ID_OTHER2_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_OTHER2_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.Other2]
-            } else if (USER_ID_OTHER3_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_OTHER3_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.Other3]
-            } else if (USER_ID_OTHER4_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_OTHER4_VALUE.equals(userIdField, true)) {
                 userId = user.userIdentities[MParticle.IdentityType.Other4]
             } else if (USER_ID_MPID_VALUE.equals(userIdField, true)) {
                 userId = user.id.toString()
-            } else if (USER_ID_DAS_VALUE.equals(userIdField,  true)) {
+            } else if (USER_ID_DAS_VALUE.equals(userIdField, true)) {
                 userId = MParticle.getInstance()!!.Identity().deviceApplicationStamp
             }
         }
@@ -298,31 +321,32 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
     private fun getOptimizelyEvent(
         mpEvent: MPEvent,
         user: MParticleUser?,
-        onEventCreated: OptimizelyEventCallback
-    ): Boolean {
-        return if (!MPUtility.isEmpty(getUserId(user))) {
-            val listener: TypedUserAttributeListener = object : TypedUserAttributeListener {
-                override fun onUserAttributesReceived(
-                    userAttributes: Map<String, *>,
-                    map1: Map<String, List<String?>?>,
-                    mpid: Long
-                ) {
-                    val attributes: MutableMap<String, Any?> = HashMap()
-                    for ((key, value) in userAttributes) {
-                        attributes[key] = value
+        onEventCreated: OptimizelyEventCallback,
+    ): Boolean =
+        if (!MPUtility.isEmpty(getUserId(user))) {
+            val listener: TypedUserAttributeListener =
+                object : TypedUserAttributeListener {
+                    override fun onUserAttributesReceived(
+                        userAttributes: Map<String, *>,
+                        map1: Map<String, List<String?>?>,
+                        mpid: Long,
+                    ) {
+                        val attributes: MutableMap<String, Any?> = HashMap()
+                        for ((key, value) in userAttributes) {
+                            attributes[key] = value
+                        }
+                        val event: OptimizelyEvent = OptimizelyEvent()
+                        val eventName = mpEvent.eventName
+                        val userId = getUserId(user)
+                        event.eventName = eventName
+                        event.userId = userId
+                        event.userAttributes = attributes
+                        if (mpEvent.customAttributes != null) {
+                            event.eventAttributes = mpEvent.customAttributes?.let { HashMap(it) }
+                        }
+                        onEventCreated.onOptimizelyEventCreated(event)
                     }
-                    val event: OptimizelyEvent = OptimizelyEvent()
-                    val eventName = mpEvent.eventName
-                    val userId = getUserId(user)
-                    event.eventName = eventName
-                    event.userId = userId
-                    event.userAttributes = attributes
-                    if (mpEvent.customAttributes != null) {
-                        event.eventAttributes = mpEvent.customAttributes?.let { HashMap(it) }
-                    }
-                    onEventCreated.onOptimizelyEventCreated(event)
                 }
-            }
             if (user != null) {
                 user.getUserAttributes(listener)
             } else {
@@ -332,7 +356,6 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         } else {
             false
         }
-    }
 
     private fun queueEvent(event: OptimizelyEvent) {
         mEventQueue.offer(event)
@@ -347,24 +370,30 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         }
     }
 
-    private fun tryParse(value: String?): Long? {
-        return try {
+    private fun tryParse(value: String?): Long? =
+        try {
             value!!.toLong()
         } catch (e: Exception) {
             null
         }
-    }
 
     inner class OptimizelyEvent {
         @JvmField
         var eventName: String? = null
+
         @JvmField
         var userId: String? = null
+
         @JvmField
         var userAttributes: Map<String, Any?>? = null
+
         @JvmField
         var eventAttributes: MutableMap<String, Any?>? = null
-        fun addEventAttribute(key: String, value: Any?) {
+
+        fun addEventAttribute(
+            key: String,
+            value: Any?,
+        ) {
             if (eventAttributes == null) {
                 eventAttributes = HashMap()
             }
@@ -399,7 +428,8 @@ open class OptimizelyKit : KitIntegration(), KitIntegration.EventListener, Comme
         const val OPTIMIZELY_VALUE_KEY = "Optimizely.Value"
         const val OPTIMIZELY_EVENT_NAME = "Optimizely.EventName"
         const val OPTIMIZELY_USER_ID = "Optimizely.UserId"
-        const val  KIT_NAME = "Optimizely"
+        const val KIT_NAME = "Optimizely"
+
         @JvmStatic
         var optimizelyClient: OptimizelyClient?
             get() = mOptimizelyClient
